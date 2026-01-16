@@ -35,8 +35,7 @@ A transparent, always-on-top overlay widget for Windows that displays:
 
 ## Requirements
 
-- Windows 10/11
-- .NET 8.0 Runtime
+- Windows 10/11 (64-bit)
 
 ## Build
 
