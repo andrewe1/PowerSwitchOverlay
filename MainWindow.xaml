@@ -1,0 +1,400 @@
+<Window x:Class="PowerSwitchOverlay.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Power Overlay"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Width="220"
+        Height="180"
+        Left="50"
+        Top="50"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        MouseRightButtonDown="Window_MouseRightButtonDown">
+    
+    <Window.Resources>
+        <!-- Compact progress bar style -->
+        <Style x:Key="TelemetryProgressBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="Background" Value="#33FFFFFF"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="2"/>
+                            <Border x:Name="PART_Track"/>
+                            <Border x:Name="PART_Indicator" 
+                                    HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}" 
+                                    CornerRadius="2"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    
+    <!-- WHY: Grid wrapper needed for multiple children (main overlay + tutorial balloons) -->
+    <Grid>
+        <!-- Main overlay container with glassmorphism effect -->
+        <Border x:Name="MainContainer" CornerRadius="0" 
+                Background="#CC1A1A2E"
+                BorderBrush="#44FFFFFF"
+                BorderThickness="1"
+                Padding="8,2,8,0"
+                Effect="{x:Null}"
+                VerticalAlignment="Top">
+        
+        <StackPanel>
+            <!-- Clock Time Section (CompactClockAlt mode only - positioned at top center) -->
+            <!-- WHY: Displays current clock time at the top of the overlay in CompactClockAlt mode -->
+            <!-- NOTE: This is now unused - clock is shown in TimeRemainingSection instead -->
+            <TextBlock x:Name="ClockTimeText"
+                       Text="12:00am"
+                       FontSize="12"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,2"
+                       Visibility="Collapsed"/>
+            
+            <!-- Battery &amp; Power Mode Section (always visible) -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Battery Section (icon + percentage) -->
+                <StackPanel x:Name="BatterySection" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                    <!-- Battery Icon -->
+                    <Border x:Name="BatteryIcon"
+                            Width="24" Height="14" 
+                            BorderBrush="{StaticResource AccentBrush}" 
+                            BorderThickness="2" 
+                            CornerRadius="0"
+                            Margin="0,0,6,0">
+                        <Grid>
+                            <Border x:Name="BatteryFill" 
+                                    Background="{StaticResource AccentBrush}" 
+                                    HorizontalAlignment="Left"
+                                    Margin="1"
+                                    CornerRadius="0"/>
+                            <!-- Battery tip -->
+                            <Border x:Name="BatteryTip" Width="2" Height="6" 
+                                    Background="{StaticResource AccentBrush}"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,0,-4,0"
+                                    CornerRadius="0"/>
+                            <!-- Charging bolt indicator (shown in Micro mode when charging) -->
+                            <TextBlock x:Name="ChargingBolt" 
+                                       Text="⚡" 
+                                       FontSize="8"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="0,-1,0,0"
+                                       Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Battery Percentage -->
+                    <TextBlock x:Name="BatteryPercentText"
+                               Text="85%"
+                               FontSize="18" 
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,2,0"/>
+                </StackPanel>
+                
+                <TextBlock x:Name="PowerModeGauge" 
+                           Grid.Column="2"
+                           Text="🔋"
+                           FontSize="20" 
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Margin="0,7,0,0"
+                           MouseLeftButtonDown="PowerModeGauge_MouseLeftButtonDown"
+                           MouseEnter="PowerModeGauge_MouseEnter"
+                           MouseLeave="PowerModeGauge_MouseLeave"
+                           ToolTip="Power Mode (Ctrl+Click to switch)"/>
+                
+                <!-- Time Remaining -->
+                <StackPanel x:Name="TimeRemainingSection" Grid.Column="3" VerticalAlignment="Center">
+                    <TextBlock x:Name="TimeRemainingText" 
+                               Text="2h 45m"
+                               FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Right"/>
+                    <!-- ChargingStatusText shows "remaining" or "plugged in" in non-ClockAlt modes -->
+                    <TextBlock x:Name="ChargingStatusText"
+                               Text="remaining"
+                               FontSize="10"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Right"/>
+                    <!-- ClockAltTimeText shows current time in CompactClockAlt mode (replaces ChargingStatusText) -->
+                    <!-- WHY: RenderTransform Y="-2" moves clock up 2px for better visual alignment with battery time -->
+                    <TextBlock x:Name="ClockAltTimeText"
+                               Text="12:00am"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Right"
+                               Visibility="Collapsed">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="-2"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+            
+            <!-- Telemetry Section (Standard + Advanced modes) -->
+            <StackPanel x:Name="TelemetrySection" Margin="0,6,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- CPU -->
+                    <StackPanel Grid.Column="0">
+                        <Grid>
+                            <TextBlock Text="CPU" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock x:Name="CpuText" Text="24%" FontSize="10" 
+                                       Foreground="{StaticResource TextPrimaryBrush}" 
+                                       HorizontalAlignment="Right"/>
+                        </Grid>
+                        <ProgressBar x:Name="CpuBar" 
+                                     Value="24" 
+                                     Maximum="100" 
+                                     Style="{StaticResource TelemetryProgressBar}"
+                                     Margin="0,4,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- RAM -->
+                    <StackPanel Grid.Column="2">
+                        <Grid>
+                            <TextBlock Text="RAM" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock x:Name="RamText" Text="58%" FontSize="10" 
+                                       Foreground="{StaticResource TextPrimaryBrush}" 
+                                       HorizontalAlignment="Right"/>
+                        </Grid>
+                        <ProgressBar x:Name="RamBar" 
+                                     Value="58" 
+                                     Maximum="100" 
+                                     Style="{StaticResource TelemetryProgressBar}"
+                                     Margin="0,4,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- GPU -->
+                    <StackPanel Grid.Column="4">
+                        <Grid>
+                            <TextBlock Text="GPU" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock x:Name="GpuText" Text="12%" FontSize="10" 
+                                       Foreground="{StaticResource TextPrimaryBrush}" 
+                                       HorizontalAlignment="Right"/>
+                        </Grid>
+                        <ProgressBar x:Name="GpuBar" 
+                                     Value="12" 
+                                     Maximum="100" 
+                                     Style="{StaticResource TelemetryProgressBar}"
+                                     Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+            
+            <!-- Clocks Section (Advanced mode only) -->
+            <StackPanel x:Name="ClocksSection" Margin="0,6,0,0" Visibility="Collapsed">
+                <Border Background="#22FFFFFF" 
+                        CornerRadius="0" 
+                        Padding="8,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- CPU Clock -->
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock Text="CPU" FontSize="9" 
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="CpuClockText" Text="3200" FontSize="11" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="MHz" FontSize="8" 
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- GPU Clock -->
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                            <TextBlock Text="GPU" FontSize="9" 
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="GpuClockText" Text="1800" FontSize="11" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="MHz" FontSize="8" 
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Network Speed -->
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                            <TextBlock Text="NET" FontSize="9" 
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock x:Name="NetDownloadText" Text="↓0" FontSize="11" 
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource AccentBrush}"/>
+                                <TextBlock Text=" " FontSize="11"/>
+                                <TextBlock x:Name="NetUploadText" Text="↑0" FontSize="11" 
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource DangerBrush}"/>
+                            </StackPanel>
+                            <TextBlock Text="Mbps" FontSize="8" 
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- Hardware Names (shown in AdvancedInfo mode only, with text trimming to prevent overflow) -->
+                <Border x:Name="HardwareNamesSection"
+                        Background="#11FFFFFF" 
+                        CornerRadius="0" 
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Visibility="Collapsed">
+                    <StackPanel>
+                        <!-- CPU Name with ellipsis for long names -->
+                        <TextBlock x:Name="CpuNameText" 
+                                   Text="CPU: Unknown"
+                                   FontSize="8"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="200"
+                                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                        <!-- GPU Name with ellipsis for long names -->
+                        <TextBlock x:Name="GpuNameText" 
+                                   Text="GPU: Unknown"
+                                   FontSize="8"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="200"
+                                   Margin="0,1,0,0"
+                                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            
+            <!-- Uptime Section (Advanced mode only) -->
+            <!-- WHY: Shows actual computer usage time since last 100% charge, excluding sleep -->
+            <StackPanel x:Name="UptimeSection" Margin="0,6,0,0" Visibility="Collapsed">
+                <Border Background="#22FFFFFF" 
+                        CornerRadius="0" 
+                        Padding="8,4">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="⏱" FontSize="11" 
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,6,0"/>
+                        <TextBlock Text="Since 100%: " FontSize="10" 
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="UptimeText" Text="--" FontSize="11" 
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+    
+    <!-- Tutorial Popup (shown on first launch) -->
+    <!-- WHY: Single consolidated popup with all tips, click anywhere to dismiss -->
+    <Popup x:Name="TutorialPopup" 
+           PlacementTarget="{Binding ElementName=MainContainer}"
+           Placement="Right"
+           HorizontalOffset="10"
+           VerticalOffset="0"
+           AllowsTransparency="True"
+           StaysOpen="True">
+        <Border x:Name="TutorialBorder"
+                Background="#F0181825"
+                BorderBrush="#00D4AA"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,14"
+                MouseLeftButtonDown="TutorialPopup_MouseDown"
+                MouseLeftButtonUp="TutorialPopup_MouseUp"
+                MouseMove="TutorialPopup_MouseMove"
+                Cursor="Hand">
+            <StackPanel Width="220">
+                <!-- Header -->
+                <TextBlock Text="Quick Start Guide"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#00D4AA"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,12"/>
+                
+                <!-- Tips with indentation and bold keywords -->
+                <TextBlock FontSize="11" Foreground="White" FontFamily="Segoe UI" 
+                           TextWrapping="Wrap" Margin="12,0,0,8">
+                    <Run FontWeight="Bold">Ctrl + Click</Run><Run>&#160;the power icon to switch power profiles</Run>
+                </TextBlock>
+                
+                <TextBlock FontSize="11" Foreground="White" FontFamily="Segoe UI" 
+                           TextWrapping="Wrap" Margin="12,0,0,8">
+                    <Run FontWeight="Bold">Ctrl + Right-Click</Run><Run>&#160;anywhere for the options menu</Run>
+                </TextBlock>
+                
+                <TextBlock FontSize="11" Foreground="White" FontFamily="Segoe UI" 
+                           TextWrapping="Wrap" Margin="12,0,0,8">
+                    <Run FontWeight="Bold">Drag</Run><Run>&#160;the overlay to reposition it</Run>
+                </TextBlock>
+                
+                <TextBlock FontSize="11" Foreground="White" FontFamily="Segoe UI" 
+                           TextWrapping="Wrap" Margin="12,0,0,8">
+                    <Run>Check&#160;</Run><Run FontWeight="Bold">'Run at Startup'</Run><Run>&#160;is enabled in options to launch on boot</Run>
+                </TextBlock>
+                           
+                <TextBlock FontSize="11" Foreground="White" FontFamily="Segoe UI" 
+                           TextWrapping="Wrap" Margin="12,0,0,8">
+                    <Run>Use&#160;</Run><Run FontWeight="Bold">borderless window</Run><Run>&#160;when gaming to keep overlay on top</Run>
+                </TextBlock>
+                
+                <TextBlock FontSize="11" Foreground="White" FontFamily="Segoe UI" 
+                           TextWrapping="Wrap" Margin="12,0,0,14">
+                    <Run>The&#160;</Run><Run FontWeight="Bold">tray icon</Run><Run>&#160;also provides quick access to options</Run>
+                </TextBlock>
+                
+                <!-- Dismiss hint -->
+                <TextBlock Text="Drag to reposition • Double-click to dismiss"
+                           FontSize="10"
+                           Foreground="#808080"
+                           FontStyle="Italic"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Popup>
+    </Grid>
+</Window>
+

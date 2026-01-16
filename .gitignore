@@ -1,0 +1,15 @@
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userprefs
+*.lock.json
+# PowerPlanSwitcher specific
+*.ps1
+
+# Build outputs (use GitHub Releases for distribution)
+publish/
+
+# Windows thumbnail cache
+Thumbs.db

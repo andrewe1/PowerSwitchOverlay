@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>PowerSwitchOverlay</AssemblyName>
+    <RootNamespace>PowerSwitchOverlay</RootNamespace>
+    
+    <!-- Version History:
+         v1.1: Added network speed monitoring, fixed RAM %, security audit complete
+         v1.2: First public release! Polished UI, onboarding tutorial, comprehensive testing -->
+    <!-- WHY: Wildcard versioning auto-increments build number on each compilation -->
+    <!-- Format: Major.Minor.Build.Revision where Build = days since 2000-01-01 -->
+    <AssemblyVersion>1.2.*</AssemblyVersion>
+    <Deterministic>false</Deterministic>
+    
+    <!-- Application Icon -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    
+    <!-- Publish Settings for self-contained single-file build -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- WHY: ReadyToRun pre-compiles IL to native code, splash appears faster -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- WHY: TieredPGO enables profile-guided optimization for faster subsequent launches -->
+    <TieredPGO>true</TieredPGO>
+    <!-- WHY: Trimming not supported with WPF/WinForms, using single-file instead -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <!-- WHY: Using native AMD ADL and NVIDIA NVML APIs for GPU clock monitoring.
+       No external DLLs needed - APIs are part of GPU drivers (atiadlxx.dll, nvml.dll). -->
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- Ko-fi support icon embedded in EXE -->
+  <ItemGroup>
+    <EmbeddedResource Include="ko-fi.png" />
+  </ItemGroup>
+
+</Project>
