@@ -4,6 +4,7 @@
 // ==============================================================================
 //
 // [CHANGE LOG]
+// 2026-01-17 - AI - Added "Force on Top (Experimental)" toggle for staying above fullscreen apps
 // 2026-01-08 - AI - Added "Launch Quick Start" menu item for tutorial re-access
 // 2026-01-06 - AI - Renamed "Micro" to "Micro (Percentage)" for clarity
 // 2026-01-06 - AI - Added Ko-fi support link in tray menu
@@ -146,6 +147,14 @@ public class TrayIconService : IDisposable
         };
         toggleClickThrough.Click += (s, e) => _overlayWindow.ToggleClickThrough();
         _contextMenu.Items.Add(toggleClickThrough);
+
+        // WHY: Force On Top experimental feature - stays above fullscreen apps and Photo Viewer
+        var forceOnTop = new ToolStripMenuItem("Force on Top (Experimental)")
+        {
+            Checked = _overlayWindow.IsForceOnTop
+        };
+        forceOnTop.Click += (s, e) => _overlayWindow.ToggleForceOnTop();
+        _contextMenu.Items.Add(forceOnTop);
 
         // WHY: Allow users to re-view the quick start tutorial at any time
         var launchTutorial = new ToolStripMenuItem("Launch Quick Start");

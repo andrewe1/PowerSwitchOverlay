@@ -50,6 +50,12 @@ public record struct AppSettings
     public bool HasSeenTutorial { get; set; }
     
     /// <summary>
+    /// True if "Force on Top" experimental feature is enabled.
+    /// WHY: Continuously re-asserts topmost to stay above fullscreen apps and Photo Viewer.
+    /// </summary>
+    public bool ForceOnTop { get; set; }
+    
+    /// <summary>
     /// Creates default settings.
     /// WHY: Record structs need explicit default constructor for JSON deserialization.
     /// </summary>
@@ -61,6 +67,7 @@ public record struct AppSettings
         Opacity = 100;
         UptimeAccumulatedSeconds = 0;
         HasSeenTutorial = false;
+        ForceOnTop = false;  // WHY: Default off - experimental feature
     }
 }
 
@@ -147,7 +154,7 @@ public class SettingsService
     /// <param name="displayMode">Current display mode.</param>
     /// <param name="opacity">Current opacity (0-100).</param>
     /// <param name="uptimeAccumulatedSeconds">Accumulated active seconds since 100%, or 0 if not tracking.</param>
-    public void SaveWindowState(Window window, DisplayMode displayMode, int opacity, double uptimeAccumulatedSeconds, bool? hasSeenTutorial = null)
+    public void SaveWindowState(Window window, DisplayMode displayMode, int opacity, double uptimeAccumulatedSeconds, bool? hasSeenTutorial = null, bool? forceOnTop = null)
     {
         // WHY: Struct value semantics require replacing the whole Settings value
         Settings = new AppSettings
@@ -157,7 +164,8 @@ public class SettingsService
             DisplayMode = displayMode,
             Opacity = opacity,
             UptimeAccumulatedSeconds = uptimeAccumulatedSeconds,
-            HasSeenTutorial = hasSeenTutorial ?? Settings.HasSeenTutorial
+            HasSeenTutorial = hasSeenTutorial ?? Settings.HasSeenTutorial,
+            ForceOnTop = forceOnTop ?? Settings.ForceOnTop
         };
         Save();
     }

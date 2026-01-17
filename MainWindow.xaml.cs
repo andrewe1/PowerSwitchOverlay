@@ -33,6 +33,8 @@
 // [2026-01-08] - AI - Fixed crash: WMI query in ClockMonitor crashed when called from background thread
 // [2026-01-10] - AI - Fixed topmost z-order issue after autostart: periodically re-asserts topmost
 //                     using Win32 SetWindowPos until user clicks overlay
+// [2026-01-16] - AI - Fixed overlay losing topmost to Windows Photo Viewer: now continuously
+//                     re-asserts topmost every 2 seconds instead of stopping after 60s
 // =============================================================================
 
 using System.Runtime.InteropServices;
@@ -105,14 +107,19 @@ public partial class MainWindow : Window
     private IntPtr _hwnd;
     private int _tickCount = 0;
     
-    // WHY: Track if user has interacted with the overlay to stop topmost re-assertion
-    private bool _hasUserInteracted = false;
+    // WHY: Timer to periodically re-assert topmost z-order
     private DispatcherTimer? _topmostTimer;
+    // WHY: Track user interaction to stop the 60-second startup timer (only used when ForceOnTop is off)
+    private bool _hasUserInteracted = false;
+    // WHY: Track if Force On Top experimental feature is enabled
+    private bool _forceOnTop = false;
     
     public DisplayMode CurrentDisplayMode { get; private set; } = DisplayMode.Standard;
     public int CurrentOpacity { get; private set; } = 100;
     /// <summary>True if overlay is in click-through mode (mouse clicks pass through).</summary>
     public bool IsClickThrough => _isClickThrough;
+    /// <summary>True if Force On Top experimental feature is enabled.</summary>
+    public bool IsForceOnTop => _forceOnTop;
     
     /// <summary>
     /// Reference to tray service for showing context menu on Ctrl+Right-Click.
@@ -139,6 +146,7 @@ public partial class MainWindow : Window
         _settingsService.ApplyWindowPosition(this);
         CurrentDisplayMode = _settingsService.Settings.DisplayMode;
         CurrentOpacity = _settingsService.Settings.Opacity;
+        _forceOnTop = _settingsService.Settings.ForceOnTop;
         
         // WHY: Restore uptime tracking from previous session, but ONLY if:
         // 1. Battery is NOT plugged in (charging)
@@ -205,24 +213,34 @@ public partial class MainWindow : Window
     
     /// <summary>
     /// Starts a timer that periodically re-asserts topmost z-order.
-    /// WHY: After autostart, fullscreen apps may cover the overlay until user clicks it.
-    /// This timer uses Win32 SetWindowPos to ensure overlay stays on top.
-    /// Timer stops after 60 seconds or when user interacts with the overlay.
+    /// WHY: Windows Photo Viewer and other system windows can cover the overlay.
+    /// Behavior depends on ForceOnTop setting:
+    /// - Default: Runs for 60 seconds or until user interaction (one-time startup fix)
+    /// - ForceOnTop: Runs continuously every 2 seconds (experimental mode)
     /// </summary>
     private void StartTopmostReassertionTimer()
     {
+        // Stop existing timer if any
+        _topmostTimer?.Stop();
+        
         _topmostTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(1)  // WHY: 1 second is frequent enough without overhead
+            // WHY: 2 seconds balances responsiveness with minimal CPU overhead
+            Interval = TimeSpan.FromSeconds(_forceOnTop ? 2 : 1)
         };
         
         int tickCount = 0;
         _topmostTimer.Tick += (s, e) =>
         {
-            tickCount++;
+            // WHY: In ForceOnTop mode, run continuously without stopping
+            if (_forceOnTop)
+            {
+                ReassertTopmost();
+                return;
+            }
             
-            // WHY: Stop after user clicks overlay or after 60 seconds
-            // 60 seconds should be more than enough for user to settle after restart
+            // WHY: Default behavior - stop after user interaction or 60 seconds
+            tickCount++;
             if (_hasUserInteracted || tickCount >= 60)
             {
                 _topmostTimer?.Stop();
@@ -234,6 +252,32 @@ public partial class MainWindow : Window
         };
         
         _topmostTimer.Start();
+    }
+    
+    /// <summary>
+    /// Toggles the Force On Top experimental feature.
+    /// WHY: When enabled, overlay stays above fullscreen apps and Photo Viewer.
+    /// </summary>
+    public void ToggleForceOnTop()
+    {
+        SetForceOnTop(!_forceOnTop);
+    }
+    
+    /// <summary>
+    /// Sets the Force On Top experimental feature state.
+    /// WHY: Restarts the topmost timer with appropriate behavior for the new mode.
+    /// </summary>
+    public void SetForceOnTop(bool enabled)
+    {
+        _forceOnTop = enabled;
+        
+        // WHY: Restart timer with new behavior
+        StartTopmostReassertionTimer();
+        
+        // WHY: Save setting immediately so it persists
+        _uptimeTracker.Update();
+        _settingsService.SaveWindowState(this, CurrentDisplayMode, CurrentOpacity, 
+            _uptimeTracker.AccumulatedSeconds, forceOnTop: enabled);
     }
     
     /// <summary>
@@ -950,7 +994,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // WHY: Mark user interaction to stop topmost re-assertion timer
+        // WHY: Mark user interaction to stop the 60-second startup timer (when ForceOnTop is off)
         _hasUserInteracted = true;
         
         // Allow dragging the window
@@ -966,7 +1010,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void Window_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // WHY: Mark user interaction to stop topmost re-assertion timer
+        // WHY: Mark user interaction to stop the 60-second startup timer (when ForceOnTop is off)
         _hasUserInteracted = true;
         
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
