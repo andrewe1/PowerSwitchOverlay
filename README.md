@@ -71,6 +71,7 @@ Ever wonder how long your laptop *actually* lasts on a charge? The "Since 100%" 
 - 👆 **Click-through mode** - Let clicks pass through to apps underneath
 - 🔋 **Battery aware** - Color-coded battery indicator (green/yellow/red)
 - 📊 **Real-time telemetry** - Updates every 2 seconds
+- 🖥️ **Remote desktop friendly** - Works over Parsec, RDP, and streaming apps — monitor your laptop battery while working fullscreen
 
 ## Usage
 
