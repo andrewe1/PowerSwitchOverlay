@@ -1,4 +1,4 @@
-![Power Switch Overlay Banner](./Screenshots/banner%201.jpg)
+![Power Switch Overlay Banner](./Screenshots/Banner%201.jpg)
 
 # Power Switch Overlay
 
@@ -9,7 +9,7 @@ A transparent, always-on-top overlay widget for Windows that displays:
 - **Power Mode** (Best Power Efficiency / Balanced / Best Performance)
 - **System Telemetry** (CPU, RAM, GPU usage)
 
-<table>
+<table border="0" cellspacing="0" cellpadding="0">
 <tr>
 <td width="50%" valign="top">
 
@@ -30,7 +30,7 @@ Position the overlay anywhere on your screen with a simple drag gesture. Your po
 </tr>
 </table>
 
-<table>
+<table border="0" cellspacing="0" cellpadding="0">
 <tr>
 <td width="50%">
 
