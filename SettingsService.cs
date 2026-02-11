@@ -10,6 +10,7 @@
 // 2026-01-05 - AI - Converted AppSettings to record struct, added readonly
 // 2026-01-06 - AI - Added UptimeTrackingStartTime to persist "Since 100%" counter
 // 2026-01-06 - AI - Changed to UptimeAccumulatedSeconds for accurate active-time tracking
+// 2026-02-10 - AI - Fixed bug: overlay shifted off taskbar on restart due to aggressive bottom-edge clamping
 // ==============================================================================
 
 using System.IO;
@@ -189,8 +190,13 @@ public class SettingsService
             top = SystemParameters.VirtualScreenTop;
         if (left > SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 50)
             left = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 200;
-        if (top > SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 50)
-            top = SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 100;
+        // WHY: Only clamp if overlay top is completely below the screen edge.
+        // Previous threshold of -50 was too aggressive and pushed the overlay off the taskbar
+        // when placed there intentionally (taskbar overlaps the bottom ~48px of virtual screen).
+        // Using -10 ensures only truly off-screen positions get corrected, and the correction
+        // is minimal (10px inset) to preserve the user's intended near-edge placement.
+        if (top > SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 10)
+            top = SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 10;
             
         window.Left = left;
         window.Top = top;
